@@ -93,6 +93,8 @@ int main() {
           double v = j[1]["speed"];
 
 
+          // Each time the program loops, this data is re-collected
+          // Shift the mean position of the datum to be at the front of the vehicle
           for(int i = 0; i < ptsx.size(); i++){
 
             double shift_x = ptsx[i] - px;
@@ -109,6 +111,17 @@ int main() {
           double* ptry = &ptsy[0];
           Eigen::Map<Eigen::VectorXd> pty_transform(ptry, 6);
 
+          //Generate the polynomial fit coefficients
+          auto coeffs = polyfit(ptx_transform, pty_transform, 3);
+
+          double cte = polyeval(coeffs, 0);
+
+          std::cout << "The coefficients are \n   " << coeffs  << std::endl;
+          //std::cout << "The cross track error is" << cte << "meters" << std::endl;  
+
+          double epsi = -atan(coeffs[1]);
+
+
           /*
           * TODO: Calculate steering angle and throttle using MPC.
           *
@@ -118,15 +131,42 @@ int main() {
           double steer_value;
           double throttle_value;
 
+
+          Eigen::VectorXd state(6);
+          state << 0, 0, 0, v, cte, epsi;
+
+          std::cout  << "the State vector is: "  << "\n\n" << state << "\n\n" << std::endl;
+          // auto vars = mpc.Solve(state, coeffs);
+          // std::cout << "The vars value is initially:  " << vars << std::endl;
+          // steer_value = vars[0];
+          // throttle_value = vars[1];
+
+        
+
+
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value;
+          msgJson["steering_angle"] = steer_value/(deg2rad(25));
           msgJson["throttle"] = throttle_value;
 
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
+
+          // for (int i = 2; i < vars.size();  i++)
+          // {
+          //   if (i%2 == 0)
+          //   {
+          //     mpc_x_vals.push_back(vars[i]);
+          //   }
+          //   else
+          //   {
+          //     mpc_y_vals.push_back(vars[i]);
+          //   }
+          // }  
+
+
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
@@ -138,6 +178,17 @@ int main() {
           vector<double> next_x_vals;
           vector<double> next_y_vals;
 
+          double poly_inc = 2.5;
+          int num_points = 50;
+
+
+          for (int i = 0; i < num_points; i++)
+          {
+            next_x_vals.push_back(i);
+            next_y_vals.push_back(polyeval(coeffs, i));
+          }
+
+          double Lf = 2.67; 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
 
